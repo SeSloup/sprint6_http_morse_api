@@ -71,7 +71,6 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, logger *log.Logger) {
 	// 5-7. Создаем локальный файл и записываем в него результат строки. Возвращаем результат конвертации
 	// Отправляем содержимое файла в ответ
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
 
 	fmt.Fprintf(w, "%s", conv) //Задача Вернуть результат конвертации строки. Куда? - конкретики нет. Поэтому возвращаем в ответ пользователю, в файл и в лог
 	logger.Printf("Текст конвертации: %s", conv)
