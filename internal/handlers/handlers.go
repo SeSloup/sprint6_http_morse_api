@@ -30,6 +30,8 @@ func HtmlHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка записи содержимого файла в ответ", http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Хендлер для эндпоинта /upload
@@ -106,6 +108,8 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, logger *log.Logger) {
 	fmt.Printf("Файл %s записан", filename)
 	//дополнительно в лог
 	logger.Printf("Файл %s записан", filename)
+
+	w.WriteHeader(http.StatusOK)
 
 	/*s := fmt.Sprintf("\nMethod: %s\nHost: %s\nPath: %s",
 		r.Method, r.Host, r.URL.Path)
