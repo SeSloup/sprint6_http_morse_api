@@ -1,89 +1,38 @@
 package service
 
 import (
-	"fmt"
-	"log"
+	"errors"
 	"myproject/pkg/morse"
-	"os"
-	"path/filepath"
 	"strings"
-	"time"
-	"unicode"
 )
 
 // IsMorseCode проверяет, является ли строка кодом Морзе
 func IsMorseCode(s string) bool {
-	// Удаляем пробелы в начале и конце строки
-	s = strings.TrimSpace(s)
+	// Удаляем все допустимые символы (точки, тире и пробелы)
+	morseSimbols := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(s, ".", ""), "-", ""), " ", "")
 
-	// Проверяем каждый символ в строке
-	for _, char := range s {
-		if !(char == '.' || char == '-' || unicode.IsSpace(char)) {
-			return false // Если найден недопустимый символ, возвращаем false
-		}
-	}
-	return true // Если все символы допустимы, возвращаем true
-}
-
-func newFilenameTime(oldName string) string {
-
-	name := filepath.Base(oldName)
-	ext := filepath.Ext(oldName)
-	time := time.Now().UTC().Format("20060102_150405")
-
-	return fmt.Sprint(name[:len(name)-len(ext)], "_", time, ext)
-
-}
-
-func createFolder(dir string) {
-
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		log.Fatal(err)
+	// Проверяем, осталась ли неподходящие символы
+	if morseSimbols != "" {
+		return false // Символы остались
 	}
 
+	return true // Использованы только morse символы
 }
 
-func CreateFile(filename string, text string, dir string) {
+func TestPrint(textForm string) (string, error) {
 
-	filename = newFilenameTime(filename)
+	if len(textForm) == 0 {
+		return "", errors.New("передана пустая строка для конвертации")
 
-	// формируем относительное имя нужного файла
-	if len(dir) > 0 {
-		createFolder(dir)
-		filename = filepath.Join(dir, filename)
-		fmt.Println(filename)
 	}
-
-	f, err := os.Create(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	// сохраняем идентификатор текущего вывода
-	stdout := os.Stdout
-	// присваиваем os.Stdout идентификатор открытого файла
-	os.Stdout = f
-	// строка должна записаться в файл
-	fmt.Println(text)
-
-	// возвращаем обратно вывод в консоль
-	os.Stdout = stdout
-	// строка выведется в консоль
-	fmt.Printf("Файл %s записан", filename)
-
-}
-
-func TestPrint(textForm string) (string, bool) {
 
 	if IsMorseCode(textForm) {
 		convertedText := string(morse.ToText(textForm))
-		return convertedText, true
+		return convertedText, nil
 
 	} else {
 		convertedMorse := string(morse.ToMorse(textForm))
-		return convertedMorse, false
+		return convertedMorse, nil
 
 	}
 }

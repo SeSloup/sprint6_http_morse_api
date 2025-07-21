@@ -2,9 +2,10 @@ package server
 
 import (
 	"log"
-	handlers "myproject/internal/handlers"
 	"net/http"
 	"time"
+
+	handlers "myproject/internal/handlers"
 )
 
 /*
@@ -31,8 +32,8 @@ func Router(logger *log.Logger) *ServStruct {
 	router := http.NewServeMux()
 
 	// 3. Регистрируем хендлеры
-	router.HandleFunc("/", handlers.HtmlHandler) // Для корневого пути
-	router.HandleFunc("/upload", handlers.HandleUpload)
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { handlers.HtmlHandler(w, r) }) // Для корневого пути
+	router.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) { handlers.HandleUpload(w, r, logger) })
 
 	// 4.Определяем сервер и передаем ему роутер
 	srv := &http.Server{Addr: ":8080", Handler: router, ErrorLog: logger,

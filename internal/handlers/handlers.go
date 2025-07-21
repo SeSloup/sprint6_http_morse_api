@@ -3,9 +3,13 @@ package handlers
 import (
 	"fmt"
 	"io"
-	service "myproject/internal/service"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"time"
+
+	service "myproject/internal/service"
 )
 
 // Хендлер для корневого эндпоинта
@@ -21,11 +25,15 @@ func HtmlHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	// Отправляем содержимое файла в ответ
-	w.Write(data)
+	_, err = w.Write(data)
+	if err != nil {
+		http.Error(w, "Ошибка записи содержимого файла в ответ", http.StatusInternalServerError)
+		return
+	}
 }
 
 // Хендлер для эндпоинта /upload
-func HandleUpload(w http.ResponseWriter, r *http.Request) {
+func HandleUpload(w http.ResponseWriter, r *http.Request, logger *log.Logger) {
 
 	// 1.Парсим html-форму из файла index.html.
 	err := r.ParseMultipartForm(10) // ограничение на 10 МБ
@@ -52,23 +60,52 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 
 	// 4. Передаем данные в функцию из пакета service для конвертации
 	textForm := string(data)
-	conv, isMorse := service.TestPrint(textForm)
-
-	// 5-7. Создаем локальный файл и записываем в него результат строки. Возвращаем результат конвертации
-
-	if isMorse {
-		//fmt.Fprintf(w, "Это расшифрованный текст: %s", conv)
-		fmt.Fprintf(w, "%s", conv)
-		service.CreateFile("text.txt", conv, "./output")
-	} else {
-		//fmt.Fprintf(w, "Это зашифрованный текст: %s", conv)
-		fmt.Fprintf(w, "%s", conv)
-		service.CreateFile("morse.txt", conv, "./output")
+	conv, err := service.TestPrint(textForm)
+	if err != nil {
+		http.Error(w, "Ошибка конвертации файла морзе. Передана пустая строка", http.StatusInternalServerError)
+		return
 	}
 
+	// 5-7. Создаем локальный файл и записываем в него результат строки. Возвращаем результат конвертации
 	// Отправляем содержимое файла в ответ
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
+
+	fmt.Fprintf(w, "%s", conv) //Задача Вернуть результат конвертации строки. Куда? - конкретики нет. Поэтому возвращаем в ответ пользователю, в файл и в лог
+	logger.Printf("Текст конвертации: %s", conv)
+
+	name := filepath.Base("text.txt")
+	ext := filepath.Ext("text.txt")
+	time := time.Now().UTC().Format("20060102_150405")
+	filename := fmt.Sprint(name[:len(name)-len(ext)], "_", time, ext)
+
+	// формируем относительное имя нужного файла
+	dir := "./output"
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	filename = filepath.Join(dir, filename)
+
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	// сохраняем идентификатор текущего вывода
+	stdout := os.Stdout
+	// присваиваем os.Stdout идентификатор открытого файла
+	os.Stdout = f
+	// строка должна записаться в файл
+	fmt.Println(conv)
+
+	// возвращаем обратно вывод в консоль
+	os.Stdout = stdout
+	// строка выведется в консоль
+	fmt.Printf("Файл %s записан", filename)
+	//дополнительно в лог
+	logger.Printf("Файл %s записан", filename)
 
 	/*s := fmt.Sprintf("\nMethod: %s\nHost: %s\nPath: %s",
 		r.Method, r.Host, r.URL.Path)
